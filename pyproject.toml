@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "bs-testpkg-02"
+version = "0.1.0"
+description = ""
+authors = ["alec <fkalec@gmail.com>"]
+readme = "README.md"
+packages = [{include = "blacksmith"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.98.0"
+uvicorn = "^0.22.0"
+pyyaml = "^6.0"
+docker = "^6.1.3"
+openai = "^0.27.8"
+redis = "^4.6.0"
+tenacity = "^8.2.2"
+kubernetes = "^26.1.0"
+
+[tool.poetry.scripts]
+blacksmith = "blacksmith.scripts.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
