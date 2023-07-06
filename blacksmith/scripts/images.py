@@ -97,7 +97,7 @@ def build_tool_images():
 
         EXPOSE {PORT}
 
-        CMD ["python3", "{file_name}.py"]"""
+        CMD ["python3", "{file_name}.py", "--tool={tool["name"]}"]"""
 
         # Write dockerfile
         with open(f"./tmp/{file_name}.dockerfile", "w") as file:

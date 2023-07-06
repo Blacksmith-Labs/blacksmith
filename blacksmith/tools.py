@@ -6,6 +6,7 @@ import os
 import redis
 import json
 import inspect
+import argparse
 
 # TODO: Update this to support more types
 type_mappings = {"str": "string", "int": "integer"}
@@ -43,8 +44,18 @@ def _get_function_parameters(func):
     return parameters
 
 
-def tool(description, params):
+def tool(name, description, params):
+    # Parse the tool name from sysargs
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tool", help="Specify the tool name")
+    args = parser.parse_args()
+    tool_name = args.tool
+
     def decorator(func):
+        # Only run business logic for target tool functions
+        if name != tool_name:
+            return func
+
         # Start FastAPI and Redis
         app = FastAPI()
         r = redis.Redis(host="redis-service", port=6379)
@@ -62,12 +73,12 @@ def tool(description, params):
         # Close redis connection
         r.close()
 
+        # Spin up the microservice
         @functools.wraps(func)
         def wrapper():
-            # Register the function as an endpoint in FastAPI
-            # TODO: Wrap this in a try/except block
             @app.get("/")
             async def entry(request: Request):
+                # TODO: Wrap this in a try/except block
                 body = await request.json()
                 return func(**body)
 
