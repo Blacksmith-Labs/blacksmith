@@ -44,12 +44,31 @@ def _get_function_parameters(func):
     return parameters
 
 
-def tool(name, description, params):
-    # Parse the tool name from sysargs
+def _register_tool(func, description, params):
+    r = redis.Redis(host="redis-service", port=6379)
+    # Register the tool
+    try:
+        tool_json_str = json.dumps(
+            _tool_to_json_func(description=description, func=func, params_desc=params)
+        )
+        r.rpush("tools", tool_json_str)
+        print(f"Successfully registered {description}")
+    except Exception as e:
+        print(f"Error: {e}")
+    r.close()
+
+
+def _parse_tool_from_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tool", help="Specify the tool name")
     args = parser.parse_args()
     tool_name = args.tool
+    return tool_name
+
+
+def tool(name, description, params):
+    # Parse the tool name from sysargs
+    tool_name = _parse_tool_from_args()
 
     def decorator(func):
         # Only run business logic for target tool functions
@@ -58,20 +77,8 @@ def tool(name, description, params):
 
         # Start FastAPI and Redis
         app = FastAPI()
-        r = redis.Redis(host="redis-service", port=6379)
 
-        # Register the tool
-        try:
-            tool_json_str = json.dumps(
-                _tool_to_json_func(description=description, func=func, params_desc=params)
-            )
-            r.rpush("tools", tool_json_str)
-            print(f"Successfully registered {description}")
-        except Exception as e:
-            print(f"Error: {e}")
-
-        # Close redis connection
-        r.close()
+        _register_tool(func=func, description=description, params=params)
 
         # Spin up the microservice
         @functools.wraps(func)
