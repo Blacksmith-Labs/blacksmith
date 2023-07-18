@@ -3,7 +3,7 @@ import json
 import requests
 from tenacity import retry, stop_after_attempt
 from blacksmith.llm import llm_call
-from blacksmith.defaults.prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_REACT_PROMPT
+from blacksmith.config.prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_REACT_PROMPT
 
 # Connect to tool storage service
 # We should expose an SDK to create a client and manually retrieve tools if user has their own Agent implementation
