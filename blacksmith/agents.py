@@ -13,7 +13,7 @@ def agent():
         agent = Agent()
         app = FastAPI()
 
-        def wrapper():
+        def server():
             @app.get("/")
             async def run(request: Request):
                 args = await request.json()
@@ -21,8 +21,8 @@ def agent():
 
             return threading.Thread(target=run_server, kwargs={"app": app})
 
-        wrapper().start()
-        return wrapper
+        server().start()
+        return server
 
     return decorator
 
