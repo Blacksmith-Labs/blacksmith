@@ -1,14 +1,33 @@
 import openai
-import os
+from llmengine import Completion
+from blacksmith.config.environment import MODEL, TEMPERATURE, MAX_TOKENS
+from blacksmith.config.constants import OPEN_SOURCE_MODELS
+from blacksmith.utils.tools import get_tools
 
 
-# TODO: Only load functions if called from an "agent"
-def llm_call(messages, tools):
-    MODEL = os.getenv("MODEL")
-    TEMPERATURE = int(os.getenv("TEMPERATURE"))
-    return openai.ChatCompletion.create(
-        model=MODEL,
-        messages=messages,
-        temperature=TEMPERATURE,
-        functions=tools,
-    )["choices"][0]["message"]
+def llm_call(tools=get_tools(), prompt="", messages=[], streaming=False):
+    global MODEL
+    match MODEL:
+        case "gpt-3.5-turbo":
+            # OpenAI
+            return openai.ChatCompletion.create(
+                model=MODEL,
+                messages=messages,
+                temperature=TEMPERATURE,
+                functions=tools,
+            )["choices"][0]["message"]
+        case MODEL if MODEL in OPEN_SOURCE_MODELS:
+            # Scale
+            resp = Completion.create(
+                model=MODEL,
+                temperature=TEMPERATURE,
+                max_new_tokens=MAX_TOKENS,
+                prompt=prompt,
+                stream=streaming,
+            )
+            if streaming:
+                return resp
+            return resp.output.text
+        case other:
+            # throw an error here
+            pass

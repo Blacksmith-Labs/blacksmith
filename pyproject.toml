@@ -1,10 +1,9 @@
 [tool.poetry]
-name = "bs-testpkg-02"
+name = "blacksmith"
 version = "0.1.0"
 description = ""
 authors = ["alec <fkalec@gmail.com>"]
 readme = "README.md"
-packages = [{include = "blacksmith"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -16,6 +15,7 @@ openai = "^0.27.8"
 redis = "^4.6.0"
 tenacity = "^8.2.2"
 kubernetes = "^26.1.0"
+scale-llm-engine = "^0.0.0b3"
 
 [tool.poetry.scripts]
 blacksmith = "blacksmith.scripts.cli:main"

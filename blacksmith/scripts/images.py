@@ -18,7 +18,14 @@ def build_agent_images():
         PORT = agent.get("port", 5000)
 
         model = agent["model"]
-        envars.update({"MODEL": model["name"], "TEMPERATURE": model["temperature"], "PORT": PORT})
+        envars.update(
+            {
+                "MODEL": model["name"],
+                "TEMPERATURE": model["temperature"],
+                "MAX_TOKENS": model.get("max_tokens", 20),  # optional
+                "PORT": PORT,
+            }
+        )
 
         dockerfile = f"""
         FROM python:3.11-slim

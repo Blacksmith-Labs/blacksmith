@@ -894,6 +894,23 @@ files = [
 pyasn1 = ">=0.1.3"
 
 [[package]]
+name = "scale-llm-engine"
+version = "0.0.0b3"
+description = "Scale LLM Engine Python client"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "scale_llm_engine-0.0.0b3-py3-none-any.whl", hash = "sha256:b2af2675076fcb62ff63a11d95092bdfcbe0ddd75e1f412b02d734f20280eebb"},
+    {file = "scale_llm_engine-0.0.0b3.tar.gz", hash = "sha256:2f0130d65f562f793f62da81616fb0651386eb250c70ebe58fc7ee32fae9e585"},
+]
+
+[package.dependencies]
+aiohttp = ">=3.8,<4.0"
+pydantic = ">=1.10,<2.0"
+requests = ">=2.31.0,<3.0.0"
+
+[[package]]
 name = "setuptools"
 version = "68.0.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
@@ -1145,4 +1162,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "8daf640dbb7ba72227a00384e77c1e5b12277475de313b0253338c5d445ff0fc"
+content-hash = "cb7f14058be5fb087827932e4170b017db9d520864c4a773382ac9f8d5a56c94"

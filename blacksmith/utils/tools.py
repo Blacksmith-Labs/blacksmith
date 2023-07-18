@@ -60,3 +60,10 @@ def parse_tool_from_args():
     args = parser.parse_args()
     tool_name = args.tool
     return tool_name
+
+
+def get_tools():
+    r = redis.Redis(host="redis-service", port=6379)
+    tools = [json.loads(tool.decode()) for tool in r.lrange("tools", 0, -1)]
+    r.close()
+    return tools
