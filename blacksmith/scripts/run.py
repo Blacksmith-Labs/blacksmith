@@ -5,7 +5,9 @@ from blacksmith.config.constants import DOCKER_NETWORK_NAME
 def create_network():
     client = docker.from_env()
     try:
-        client.networks.create(name=DOCKER_NETWORK_NAME)
+        # Only create the network if one with that name doesn't already exist
+        if not any(network.name == DOCKER_NETWORK_NAME for network in client.networks.list()):
+            client.networks.create(name=DOCKER_NETWORK_NAME)
     except Exception as e:
         return e
 
