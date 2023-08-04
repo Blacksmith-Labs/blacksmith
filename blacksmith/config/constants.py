@@ -12,3 +12,5 @@ OPEN_SOURCE_MODELS = [
     "mpt-7b-instruct",
     "flan-t5-xxl",
 ]
+
+DOCKER_NETWORK_NAME = "agent-network"
