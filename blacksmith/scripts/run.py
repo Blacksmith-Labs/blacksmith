@@ -2,8 +2,10 @@ import docker
 from blacksmith.config.constants import DOCKER_NETWORK_NAME
 
 
+client = docker.from_env()
+
+
 def create_network():
-    client = docker.from_env()
     try:
         # Only create the network if one with that name doesn't already exist
         if not any(network.name == DOCKER_NETWORK_NAME for network in client.networks.list()):
@@ -13,7 +15,6 @@ def create_network():
 
 
 def run_container(image_name, container_name, ports, environment):
-    client = docker.from_env()
     try:
         client.containers.run(
             image=image_name,
