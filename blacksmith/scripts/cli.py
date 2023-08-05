@@ -10,6 +10,56 @@ from blacksmith.scripts.k8s import (
     apply_redis,
     remove,
 )
+from blacksmith.scripts.run import run_container, create_network, start_tool_registry, ping_registry
+
+
+def run_command(args):
+    # Create temporary build path
+    os.makedirs("./tmp")
+
+    print("🐳 Building agent images...")
+    agent_specs = build_agent_images()
+    print("✨ Completed!")
+    print("🐳 Building tool images...")
+    tool_specs = build_tool_images()
+    print("✨ Completed!")
+
+    # Remove intermediate build files
+    shutil.rmtree("./tmp")
+
+    # Create container networking
+    create_network()
+
+    # Create the tool registry container
+    print("🧰 Spinning up tool registry...")
+    start_tool_registry()
+
+    # Block on health check
+    ping_registry()
+
+    # Create agent containers
+    print("👷 Creating agent containers...")
+    for agent_spec in agent_specs:
+        environment = agent_spec["envars"]
+        port = environment["PORT"]
+        run_container(
+            image_name=agent_spec["image"],
+            container_name=agent_spec["name"],
+            ports={f"{port}/tcp": port},
+            environment=agent_spec["envars"],
+        )
+    print("✨ Completed!")
+
+    # Create tool containers
+    print("🔧 Creating tool containers...")
+    for tool_spec in tool_specs:
+        run_container(
+            image_name=tool_spec["image"],
+            container_name=f"{tool_spec['name']}-tool",  # container name has to match this format: '{tool name define in YAML}-tool'
+            ports=None,
+            environment=tool_spec["envars"],
+        )
+    print("✨ Completed!")
 
 
 def build_command(args):
@@ -33,10 +83,12 @@ def build_command(args):
     with open(f"./k8s/manifest.yaml", "w") as file:
         file.write("")
 
-    print("📦  Creating manifest...")
+    print("📦 Creating manifest...")
     create_k8s_manifest(agent_specs, tool_specs)
     print("✨ Completed!")
-    print("⚙️  Building Redis tool registry...")
+
+    # Build dependency containers
+    print("⚙️  Building dependencies...")
     create_redis()
     print("✨ Completed!")
 
@@ -67,6 +119,10 @@ def main():
     # Build step (images, manifest files)
     build_parser = subparsers.add_parser("build", help="Build tools")
     build_parser.set_defaults(func=build_command)
+
+    # Run step (build images and run as standalone containers)
+    build_parser = subparsers.add_parser("run", help="Run")
+    build_parser.set_defaults(func=run_command)
 
     # Apply step (kubectl apply)
     build_parser = subparsers.add_parser("apply", help="Apply")
