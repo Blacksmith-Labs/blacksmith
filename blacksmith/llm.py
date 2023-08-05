@@ -5,11 +5,12 @@ from blacksmith.config.constants import OPEN_SOURCE_MODELS
 from blacksmith.utils.tools import get_tools
 
 
-def llm_call(tools=get_tools(), prompt="", messages=[], streaming=False):
+def llm_call(prompt="", messages=[], streaming=False):
     global MODEL
     match MODEL:
         case "gpt-3.5-turbo":
             # OpenAI
+            tools = get_tools()
             return openai.ChatCompletion.create(
                 model=MODEL,
                 messages=messages,
