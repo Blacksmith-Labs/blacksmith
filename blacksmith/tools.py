@@ -3,7 +3,8 @@ from fastapi import FastAPI, Request
 import threading
 import functools
 import os
-from blacksmith.utils.tools import parse_tool_from_args, register_tool
+from blacksmith.utils.tools import parse_tool_from_args
+from blacksmith.utils.registry import registry
 
 
 def tool(name, description, params):
@@ -18,7 +19,7 @@ def tool(name, description, params):
         # Start FastAPI and Redis
         app = FastAPI()
 
-        register_tool(func=func, description=description, params=params)
+        registry.register_tool(func=func, description=description, params=params)
 
         # Spin up the microservice
         @functools.wraps(func)
@@ -35,6 +36,10 @@ def tool(name, description, params):
         return server
 
     return decorator
+
+
+def get_tools():
+    return registry.get_tools()
 
 
 def run_server(app):

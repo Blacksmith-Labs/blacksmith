@@ -2,7 +2,7 @@ import openai
 from llmengine import Completion
 from blacksmith.config.environment import MODEL, TEMPERATURE, MAX_TOKENS
 from blacksmith.config.constants import OPEN_SOURCE_MODELS
-from blacksmith.utils.tools import get_tools
+from blacksmith.utils.registry import registry
 
 
 def llm_call(prompt="", messages=[], streaming=False):
@@ -10,7 +10,7 @@ def llm_call(prompt="", messages=[], streaming=False):
     match MODEL:
         case "gpt-3.5-turbo":
             # OpenAI
-            tools = get_tools()
+            tools = registry.get_tools()
             return openai.ChatCompletion.create(
                 model=MODEL,
                 messages=messages,
