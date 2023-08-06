@@ -1,11 +1,8 @@
 import os
-import redis
 import json
 import inspect
 import argparse
-
-# TODO: Update this to support more types
-type_mappings = {"str": "string", "int": "integer"}
+from blacksmith.config.constants import TOOL_TYPE_MAPPINGS
 
 
 def tool_to_json_func(description, func, params_desc):
@@ -16,7 +13,7 @@ def tool_to_json_func(description, func, params_desc):
         properties.update(
             {
                 param_name[1]: {
-                    "type": type_mappings[param_type[1].__name__],
+                    "type": TOOL_TYPE_MAPPINGS[param_type[1].__name__],
                     "description": params_desc[param_name[1]],
                 }
             },
