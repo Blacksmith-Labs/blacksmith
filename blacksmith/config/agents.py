@@ -1,15 +1,11 @@
-import redis
 import json
 import requests
 from tenacity import retry, stop_after_attempt
 from blacksmith.llm import llm_call
 from blacksmith.config.prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_REACT_PROMPT
 
-# Connect to tool storage service
-# We should expose an SDK to create a client and manually retrieve tools if user has their own Agent implementation
-r = redis.Redis(host="redis-service", port=6379)
 
-
+# ReAct: Synergizing Reasoning and Acting in Language Models - https://arxiv.org/abs/2210.03629
 class Agent:
     def __init__(self, **kwargs) -> None:
         type = kwargs.get("type", "zero-shot-react")
@@ -22,9 +18,6 @@ class Agent:
             self.prompt = kwargs.get("prompt")
             self.system_prompt = kwargs.get("system_prompt")
 
-        self.tools = kwargs.get(
-            "tools", [json.loads(tool.decode()) for tool in r.lrange("tools", 0, -1)]
-        )
         self.max_loops = kwargs.get("max_loops", 5)
 
     def process(self, messages, query):
@@ -32,7 +25,7 @@ class Agent:
 
         @retry(stop=stop_after_attempt(self.max_loops))
         def _think():
-            resp = llm_call(messages=messages, tools=self.tools)
+            resp = llm_call(messages=messages)
 
             iterations = 0
             while True:
@@ -50,7 +43,8 @@ class Agent:
                 if func:
                     service_name = func["name"]
                     args = json.loads(func["arguments"])
-                    url = f"http://{service_name}:80"
+                    # The port is 5000 locally, 80 for k8s, create a function to do this dynamically
+                    url = f"http://{service_name}:5000"
                     tool_res = requests.get(url=url, json=args)
                     data = tool_res.json()
                     print(f"Executed function {service_name}. Result: {data}")
@@ -73,7 +67,7 @@ class Agent:
                             """,
                         }
                     )
-                resp = llm_call(messages=messages, tools=self.tools)
+                resp = llm_call(messages=messages)
                 iterations += 1
 
         return _think(), func_calls
