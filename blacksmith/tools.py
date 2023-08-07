@@ -38,6 +38,10 @@ def tool(name, description, params):
     return decorator
 
 
+def use_tool(tool_name, args):
+    return registry.use_tool(tool_name=tool_name, args=args)
+
+
 def get_tools():
     return registry.get_tools()
 

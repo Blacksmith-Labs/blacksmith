@@ -2,6 +2,7 @@ import json
 import requests
 from tenacity import retry, stop_after_attempt
 from blacksmith.llm import llm_call
+from blacksmith.tools import use_tool
 from blacksmith.config.prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_REACT_PROMPT
 
 
@@ -41,17 +42,15 @@ class Agent:
 
                 func = resp.get("function_call")
                 if func:
-                    service_name = func["name"]
+                    tool_name = func["name"]
                     args = json.loads(func["arguments"])
                     # The port is 5000 locally, 80 for k8s, create a function to do this dynamically
-                    url = f"http://{service_name}:5000"
-                    tool_res = requests.get(url=url, json=args)
-                    data = tool_res.json()
-                    print(f"Executed function {service_name}. Result: {data}")
+                    data = use_tool(tool_name=tool_name, args=args)
+                    print(f"Executed function {tool_name}. Result: {data}")
                     func_calls.append(
                         {
                             "execution_order": iterations,
-                            "function_name": {service_name},
+                            "function_name": {tool_name},
                             "params": {func["arguments"]},
                             "result": {json.dumps(data)},
                         }
@@ -60,7 +59,7 @@ class Agent:
                         {
                             "role": "user",
                             "content": f"""
-                                Result of {service_name} is {data}.
+                                Result of {tool_name} is {data}.
                                 Generate an observation based on this result.
                                 If you have enough information to answer {query}, return the final answer prefixed with 'Final Answer:'.
                                 Otherwise, based on this observation, proceed with other function calls to gather information as appropriate.
