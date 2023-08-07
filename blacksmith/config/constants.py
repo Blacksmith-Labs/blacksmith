@@ -21,7 +21,7 @@ REGISTRY_HEALTH_CHECK_LIMIT = 2
 
 REGISTRY_HEALTH_CHECK_BACKOFF = 1
 
-REGISTRY_CONTAINER_NAME = "redis-service"
+REGISTRY_CONTAINER_NAME = "tool-registry"
 
 # TODO: Update this to support more types
 TOOL_TYPE_MAPPINGS = {"str": "string", "int": "integer"}
