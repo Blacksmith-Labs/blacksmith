@@ -12,7 +12,7 @@ def build_agent_images():
 
     for agent in agents:
         file_name = agent["handler"]
-        agent_name = agent["name"].lower()  # this needs to be lowercase...
+        agent_name = agent["name"].lower()  # this needs to be lowercase or k8s will error...
         envars = agent["env"]
 
         PORT = agent.get("port", 5000)
@@ -42,19 +42,17 @@ def build_agent_images():
 
         CMD ["python3", "{file_name}.py"]"""
 
-        # Write dockerfile
         with open(f"./tmp/{file_name}.dockerfile", "w") as file:
             file.write(dockerfile)
 
-        # Build image from dockerfile
         image, build_logs = client.images.build(
             path=".",
             dockerfile=f"./tmp/{file_name}.dockerfile",
             cache_from=[],
             tag={agent_name},
-            buildargs=None,  # Optionally, you can pass build arguments here
-            rm=True,  # Optionally, remove intermediate containers after building
-            forcerm=True,  # Optionally, force removal of intermediate containers
+            buildargs=None,
+            rm=True,
+            forcerm=True,
         )
 
         spec = {}
@@ -68,7 +66,6 @@ def build_agent_images():
 
 
 def build_tool_images():
-    # TODO: Add filepath as args
     client = docker.from_env()
 
     with open("blacksmith.yaml", "r") as f:
@@ -87,9 +84,9 @@ def build_tool_images():
             envars.update({"MODEL": model["name"], "TEMPERATURE": model["temperature"]})
         envars.update(
             {
-                "TOOL_SERVICE_NAME": f"{tool_name}-tool",
+                "TOOL_SERVICE_NAME": f"{tool_name}-tool",  # this should correspond to the service name that exposes this tool
                 "PORT": PORT,
-            }  # this should correspond to the service name that exposes this tool
+            }
         )
         dockerfile = f"""
         FROM python:3.11-slim
@@ -106,18 +103,16 @@ def build_tool_images():
 
         CMD ["python3", "{file_name}.py", "--tool={tool["name"]}"]"""
 
-        # Write dockerfile
         with open(f"./tmp/{file_name}.dockerfile", "w") as file:
             file.write(dockerfile)
 
-        # Build image from dockerfile
         image, build_logs = client.images.build(
             path=".",
             dockerfile=f"./tmp/{file_name}.dockerfile",
             tag={tool_name},
-            buildargs=None,  # Optionally, you can pass build arguments here
-            rm=True,  # Optionally, remove intermediate containers after building
-            forcerm=True,  # Optionally, force removal of intermediate containers
+            buildargs=None,
+            rm=True,
+            forcerm=True,
         )
 
         spec = {}
@@ -128,5 +123,4 @@ def build_tool_images():
         spec["envars"] = envars
 
         tool_specs.append(spec)
-        # Where should the image be published? Currently, configuring k8s to pull from local minikube registry
     return tool_specs
