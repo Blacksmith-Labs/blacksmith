@@ -1,5 +1,4 @@
 import json
-import requests
 from tenacity import retry, stop_after_attempt
 from blacksmith.llm import llm_call
 from blacksmith.tools import use_tool
@@ -7,7 +6,7 @@ from blacksmith.config.prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_REACT_PROMP
 
 
 # ReAct: Synergizing Reasoning and Acting in Language Models - https://arxiv.org/abs/2210.03629
-class Agent:
+class ReActAgent:
     def __init__(self, **kwargs) -> None:
         type = kwargs.get("type", "zero-shot-react")
 
