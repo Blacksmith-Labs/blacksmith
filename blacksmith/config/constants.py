@@ -29,7 +29,7 @@ REGISTRY_CONTAINER_NAME = "tool-registry"
 TOOL_TYPE_MAPPINGS = {"str": "string", "int": "integer"}
 
 
-class ChatRoles(Enum):
+class ChatRoles(str, Enum):
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
