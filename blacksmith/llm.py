@@ -1,6 +1,6 @@
 import openai
 import json
-from typing import Optional
+from typing import Optional, List
 from blacksmith.config.constants import ChatRoles
 from blacksmith.config.prompts import DEFAULT_OBSERVATION
 from blacksmith.config.environment import MODEL, TEMPERATURE
@@ -9,9 +9,12 @@ from blacksmith.tools import use_tool
 from pydantic import BaseModel
 
 
-class ChatModelMessage(BaseModel):
-    role: str
+class ChatMessage(BaseModel):
+    role: ChatRoles
     content: str
+
+    class Config:
+        use_enum_values = True
 
 
 class FunctionCall(BaseModel):
@@ -42,13 +45,14 @@ class FunctionCallResult(FunctionCall):
 
     result: str = None
 
-    def generate_observation(self) -> ChatModelMessage:
+    def generate_observation(self, observation_prompt: str = DEFAULT_OBSERVATION) -> ChatMessage:
         """
         Generates a ChatModelMessage as an observation of the result of tool usage.
+        You can override the default observation prompt by passing in an observation_prompt parameter.
         """
-        return ChatModelMessage(
+        return ChatMessage(
             role=ChatRoles.USER,
-            content=DEFAULT_OBSERVATION.format(result=self.result, tool=self.tool, args=self.args),
+            content=observation_prompt.format(result=self.result, tool=self.tool, args=self.args),
         )
 
 
@@ -56,23 +60,76 @@ class LLMResponse(BaseModel):
     content: str | None
     function_call: Optional[FunctionCall] = None
 
+    def execute_function_call(self, verbose=True) -> FunctionCallResult:
+        if not self.function_call:
+            return ValueError("Function call not found")
+        return self.function_call.execute(verbose=verbose)
 
-def llm_call(messages=[], tools=None, verbose=False) -> LLMResponse:
-    # OpenAI
-    tools = tools or registry.get_tools()
-    res = openai.ChatCompletion.create(
-        model=MODEL,
-        messages=messages,
-        temperature=TEMPERATURE,
-        functions=tools,
-    )["choices"][0]["message"]
+    def has_function_call(self) -> bool:
+        return self.function_call is not None
 
-    res = res.to_dict()
-    if verbose:
-        print(res)
 
-    fc = res.get("function_call").to_dict()
-    return LLMResponse(
-        content=res.get("content"),
-        function_call=FunctionCall(tool=fc.get("name"), args=fc.get("arguments")),
-    )
+class Conversation(BaseModel):
+    """
+    Class representing a conversation with a language model.
+    """
+
+    system_prompt: Optional[str] = ""
+    messages: Optional[List[ChatMessage]] = []
+
+    def ask(self, prompt: str, role: ChatRoles = ChatRoles.USER) -> LLMResponse:
+        """
+        Sends a prompt (optional) plus the current message chain to the language model.
+        You can change the role by passing in a ChatRoles parameter (defaults to User).
+        Returns a LLMResponse object.
+        """
+
+        # initialize messages
+        if self.system_prompt and not self.messages:
+            self.messages = [ChatMessage(role=ChatRoles.SYSTEM, content=self.system_prompt)]
+
+        self.add_message(ChatMessage(role=role, content=prompt))
+
+        return self._send()
+
+    def _send(self, verbose=True) -> LLMResponse:
+        # OpenAI
+        tools = registry.get_tools()
+        try:
+            res = openai.ChatCompletion.create(
+                model=MODEL,
+                messages=[message.model_dump() for message in self.messages],
+                temperature=TEMPERATURE,
+                functions=tools,
+            )["choices"][0]["message"]
+
+            res = res.to_dict()
+            if verbose:
+                print(res)
+
+            fc = res.get("function_call")
+
+            if fc:
+                fc = fc.to_dict()
+            return LLMResponse(
+                content=res.get("content"),
+                function_call=FunctionCall(tool=fc.get("name"), args=fc.get("arguments"))
+                if fc
+                else None,
+            )
+        except Exception as e:
+            print(f"Error sending {self.messages}: {e}")
+
+    def add_message(self, message: ChatMessage) -> None:
+        """
+        Adds a ChatMessage to the message chain.
+        """
+        self.messages.append(message)
+
+    def continue_from_result(self, fcr: FunctionCallResult):
+        """
+        Generates an observation from a function call result and sends another request to the LLM.
+        """
+        observation = fcr.generate_observation()
+        self.add_message(observation)
+        return self._send()
