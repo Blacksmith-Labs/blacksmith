@@ -15,9 +15,7 @@ If the user demands a final answer but you are unsure, consider executing a func
 
 The result of all previous function calls will be added to the conversation history as an observation.
 
-Begin!
-
 Question: {input}
-
-Decompose the question into multiple subquestions, and answer each one individually in order to arrive at the final answer.
 """
+
+DEFAULT_OBSERVATION = "Observation: '{result}' is the result of calling {tool} with {args}"

@@ -1,3 +1,5 @@
+from enum import Enum
+
 OPEN_SOURCE_MODELS = [
     "llama-2-7b",
     "llama-2-7b-chat",
@@ -25,3 +27,9 @@ REGISTRY_CONTAINER_NAME = "tool-registry"
 
 # TODO: Update this to support more types
 TOOL_TYPE_MAPPINGS = {"str": "string", "int": "integer"}
+
+
+class ChatRoles(Enum):
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
