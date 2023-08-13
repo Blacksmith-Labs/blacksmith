@@ -1,4 +1,4 @@
 import os
 
 MODEL = os.getenv("MODEL")
-TEMPERATURE = float(os.getenv("TEMPERATURE"))
+TEMPERATURE = float(os.getenv("TEMPERATURE", 0))
