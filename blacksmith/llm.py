@@ -1,6 +1,6 @@
 import openai
 import json
-from typing import Optional, List
+from typing import Optional, List, Any
 from blacksmith.config.constants import ChatRoles
 from blacksmith.config.prompts import DEFAULT_OBSERVATION
 from blacksmith.config.environment import MODEL, TEMPERATURE
@@ -32,6 +32,7 @@ class FunctionCall(BaseModel):
         try:
             tool_result = use_tool(tool_name=self.tool, args=json.loads(self.args))
             if verbose:
+                print(f"Calling {self.tool} with {self.args}")
                 print("Result of function call:", tool_result)
             return FunctionCallResult(tool=self.tool, args=self.args, result=tool_result)
         except Exception as e:
@@ -43,7 +44,7 @@ class FunctionCallResult(FunctionCall):
     A class representing the result of calling a LLM function.
     """
 
-    result: str = None
+    result: Any = None
 
     def generate_observation(self, observation_prompt: str = DEFAULT_OBSERVATION) -> ChatMessage:
         """
