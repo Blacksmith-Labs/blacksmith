@@ -38,7 +38,7 @@ class Task(OpenAISchema):
 
     def generate_function_call(self, debug: bool = False) -> FunctionCall | None:
         """
-        Not every query might be a function call!
+        Generates a function call using the model defined in the Blacksmith configuration file.
         """
         c = Conversation()
         resp = c.ask(prompt=self.task, debug=debug)
@@ -98,6 +98,9 @@ class TaskPlan(OpenAISchema):
         return result
 
     def get_ready_to_execute(self):
+        """
+        Retrieves the starting nodes in the current graph.
+        """
         execution_order = self._get_execution_order()
         tasks = {q.id: q for q in self.task_graph}
         task_results = {}
@@ -112,7 +115,7 @@ class TaskPlan(OpenAISchema):
         """
         Executes the current dependency level of the graph.
 
-        This will return the TaskGraph with
+        This will return list of tasks with results attached.
         """
         tasks = self.get_ready_to_execute()
         if debug:
