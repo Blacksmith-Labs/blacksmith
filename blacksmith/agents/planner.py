@@ -4,7 +4,7 @@ from typing import List, Generator
 from pydantic import Field, BaseModel
 from openai_function_call import OpenAISchema
 from blacksmith.tools import get_tools
-from blacksmith.llm import llm_call
+from blacksmith.llm import Conversation, FunctionCall
 
 
 class TaskResult(BaseModel):
@@ -36,18 +36,28 @@ class Task(OpenAISchema):
         Dependencies must only be other tasks.""",
     )
 
-    async def aexecute(self, with_results: TaskResults) -> TaskResult:
+    def generate_function_call(self, debug: bool = False) -> FunctionCall | None:
         """
-        Executes the task by asking the question and returning the answer.
+        Not every query might be a function call!
         """
+        c = Conversation()
+        resp = c.ask(prompt=self.task, debug=debug)
+        if resp.has_function_call():
+            return resp.function_call
 
-        messages = []
-        if with_results.results:
-            for task_result in with_results.results:
-                self.task = self.task.replace(f"{{{task_result.task_id}}}", f"{task_result.result}")
-        messages.append({"role": "user", "content": f"{self.task}"})
-        result = llm_call(messages=messages, auto_use_tool=True, verbose=True)
-        return TaskResult(task_id=self.id, question=self.task, result=f"{result}")
+    def generate_and_execute_function_call(self, debug: bool = False) -> TaskResult:
+        function_call = self.generate_function_call(debug=debug)
+        if not function_call:
+            return TaskResult(
+                task_id=self.id,
+                question=self.task,
+                result="",
+            )
+        return TaskResult(
+            task_id=self.id,
+            question=self.task,
+            result=str(function_call.execute(debug=debug).result),
+        )
 
 
 class TaskPlan(OpenAISchema):
@@ -87,55 +97,47 @@ class TaskPlan(OpenAISchema):
             result.extend(sorted(d))
         return result
 
-    async def execute(self) -> dict[int, TaskResult]:
-        """
-        Executes the tasks in the task plan in the correct order using asyncio and chunks with answered dependencies.
-        """
+    def get_ready_to_execute(self):
         execution_order = self._get_execution_order()
         tasks = {q.id: q for q in self.task_graph}
         task_results = {}
-        while True:
-            ready_to_execute = [
-                tasks[task_id]
-                for task_id in execution_order
-                if task_id not in task_results
-                and all(subtask_id in task_results for subtask_id in tasks[task_id].subtasks)
-            ]
-            # prints chunks to visualize execution order
-            print(f"Executing: {ready_to_execute}")
-            computed_answers = await asyncio.gather(
-                *[
-                    q.aexecute(
-                        with_results=TaskResults(
-                            results=[
-                                result
-                                for result in task_results.values()
-                                if result.task_id in q.subtasks
-                            ]
-                        )
-                    )
-                    for q in ready_to_execute
-                ]
-            )
-            for answer in computed_answers:
-                task_results[answer.task_id] = answer
-            from pprint import pprint
+        return [
+            tasks[task_id]
+            for task_id in execution_order
+            if task_id not in task_results
+            and all(subtask_id in task_results for subtask_id in tasks[task_id].subtasks)
+        ]
 
-            pprint(task_results)
-            if len(task_results) == len(execution_order):
-                break
+    def execute_current_level(self, debug: bool = False) -> dict[int, TaskResult]:
+        """
+        Executes the current dependency level of the graph.
+
+        This will return the TaskGraph with
+        """
+        tasks = self.get_ready_to_execute()
+        if debug:
+            print(f"Executing {tasks}", flush=True)
+        task_results = {}
+
+        # Not every task might be a function call!
+        # TODO: Implement other execution options for a task
+        results = [task.generate_and_execute_function_call() for task in tasks]
+        for result in results:
+            task_results[result.task_id] = result
         return task_results
 
+    def has_queries(self) -> bool:
+        return len(self.task_graph) != 0
 
-# Task.model_rebuild()
-# TaskPlan.model_rebuild()
 
-
-def task_planner(question: str) -> TaskPlan:
+def generate_task_plan(question: str) -> TaskPlan:
     messages = [
         {
             "role": "system",
-            "content": "You are a world class query planning algorithm capable of breaking apart questions into its depenencies queries such that the answers can be used to inform the parent question. Do not answer the questions, simply provide correct compute graph with good specific questions to ask and relevant dependencies. Before you call the function, think step by step to get a better understanding the problem.",
+            "content": """
+            You are a world class query planning algorithm capable of breaking apart questions into its depenencies queries such that the answers can be used to inform the parent question. Do not answer the questions, simply provide correct compute graph with good specific questions to ask and relevant dependencies.
+            Before you call the function, think step by step to get a better understanding the problem.\n
+            """,
         },
         {
             "role": "user",
@@ -147,7 +149,6 @@ def task_planner(question: str) -> TaskPlan:
             """,
         },
     ]
-
     # We need GPT-4 here
     completion = openai.ChatCompletion.create(
         model="gpt-4-0613",
@@ -162,9 +163,82 @@ def task_planner(question: str) -> TaskPlan:
     return root
 
 
+def update_task_plan(question, task_results, debug: bool = False) -> TaskPlan:
+    if debug:
+        print("Before update:", task_results, flush=True)
+
+    messages = [
+        {
+            "role": "system",
+            "content": """
+        You are a world class query planning algorithm capable of breaking apart questions into its depenencies queries such that the answers can be used to inform the parent question. Do not answer the questions, simply provide correct compute graph with good specific questions to ask and relevant dependencies.
+        Before you call the function, think step by step to get a better understanding the problem.\n
+        """,
+        },
+        {
+            "role": "user",
+            "content": f"""
+            You previously created a query plan to answer a user question.
+            Given the previous query plan (with results), update the query plan given the information gained from the results of executing the current dependency level.
+            In your new query plan, do not include previously answered questions from the last query plan.
+            
+            Original Question:
+            {question}
+            
+            Previous query plan:
+            {task_results}
+            
+            You have access to the following tools: {[{'name': tool['name'], 'description': tool['description']} for tool in get_tools()]}\n
+            """,
+        },
+    ]
+    # We need GPT-4 here
+    completion = openai.ChatCompletion.create(
+        model="gpt-4-0613",
+        temperature=0,
+        functions=[TaskPlan.openai_schema],
+        function_call={"name": TaskPlan.openai_schema["name"]},
+        messages=messages,
+        max_tokens=1000,
+    )
+    task_plan = TaskPlan.from_response(completion)
+
+    if debug:
+        print("After update:", task_plan, flush=True)
+
+    return task_plan
+
+
 class QueryPlannerAgent:
     def __init__(self) -> None:
-        pass
+        self.task_plan = None
+        self.original_question = None
+        self.task_results = []
 
     def create_plan(self, question: str) -> TaskPlan:
-        return task_planner(question=question)
+        self.task_plan = generate_task_plan(question=question)
+        self.original_question = question
+
+    def execute_current_level(self, debug: bool = False) -> dict[int, TaskResult]:
+        """
+        Executes the current dependency level of the TaskGraph and stores the results.
+        """
+        tasks = self.task_plan.execute_current_level(debug=debug)
+        for task in [task.model_dump() for task in tasks.values()]:
+            if task.get("result"):
+                self.task_results.append(task)
+        return tasks
+
+    def update_plan(self) -> TaskPlan | None:
+        """
+        Executes the current level and updates the plan.
+
+        This function will return an empty task graph if the query is complete.
+        """
+        self.task_plan = update_task_plan(
+            question=self.original_question, task_results=self.get_completed_tasks()
+        )
+        return self.task_plan
+
+    def get_completed_tasks(self):
+        return self.task_results
