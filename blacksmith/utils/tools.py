@@ -2,7 +2,7 @@ import os
 import json
 import inspect
 import argparse
-from blacksmith.config.constants import TOOL_TYPE_MAPPINGS
+from blacksmith.config.constants import TYPE_MAPPINGS
 
 
 def tool_to_json_func(description, func, params_desc):
@@ -13,7 +13,7 @@ def tool_to_json_func(description, func, params_desc):
         properties.update(
             {
                 param_name[1]: {
-                    "type": TOOL_TYPE_MAPPINGS[param_type[1].__name__],
+                    "type": TYPE_MAPPINGS[param_type[1].__name__],
                     "description": params_desc[param_name[1]],
                 }
             },
