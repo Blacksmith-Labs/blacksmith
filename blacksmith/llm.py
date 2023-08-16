@@ -4,9 +4,37 @@ from typing import Optional, List, Any
 from blacksmith.config.constants import ChatRoles
 from blacksmith.config.prompts import DEFAULT_OBSERVATION
 from blacksmith.config.environment import MODEL, TEMPERATURE
+from blacksmith.config.constants import TYPE_MAPPINGS
 from blacksmith.utils.registry import registry
 from blacksmith.tools import use_tool
 from pydantic import BaseModel
+
+
+class Choice(BaseModel):
+    options: List[Any]
+
+    def _schema(self):
+        model = self.model_dump()
+        option_type = TYPE_MAPPINGS[type(model["options"][0]).__name__]
+        return {
+            "name": "Choice",
+            "description": f"Complete the function call with the choices given.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "choice": {"type": option_type, "enum": [v for v in model["options"]]}
+                },
+            },
+        }
+
+    def generate(self, query):
+        c = Conversation(
+            system_prompt="You are a helpful assistant who only has access to a single function."
+        )
+        resp = c.ask(
+            query, functions=[self._schema()], function_call={"name": "Choice"}, debug=True
+        )
+        return json.loads(resp.function_call.args)["choice"]
 
 
 class ChatMessage(BaseModel):
@@ -79,7 +107,12 @@ class Conversation(BaseModel):
     messages: Optional[List[ChatMessage]] = []
 
     def ask(
-        self, prompt: str, role: ChatRoles = ChatRoles.USER, debug: bool = False
+        self,
+        prompt: str,
+        functions: list[any] = registry.get_tools(),
+        function_call: str | dict = "auto",
+        role: ChatRoles = ChatRoles.USER,
+        debug: bool = False,
     ) -> LLMResponse:
         """
         Sends a prompt (optional) plus the current message chain to the language model.
@@ -93,11 +126,10 @@ class Conversation(BaseModel):
 
         self.add_message(ChatMessage(role=role, content=prompt))
 
-        return self._send(debug=debug)
+        return self._send(functions=functions, function_call=function_call, debug=debug)
 
-    def _send(self, debug=False) -> LLMResponse:
+    def _send(self, functions: list[any], function_call: str | dict, debug=False) -> LLMResponse:
         # OpenAI
-        tools = registry.get_tools()
         try:
             if MODEL == "musabgultekin/functionary-7b-v1":
                 openai.api_base = "https://0xalec--functionary-fastapi-app-dev.modal.run/v1"
@@ -105,7 +137,8 @@ class Conversation(BaseModel):
                 model=MODEL,
                 messages=[message.model_dump() for message in self.messages],
                 temperature=TEMPERATURE,
-                functions=tools,
+                functions=functions,
+                function_call=function_call,
             )["choices"][0]["message"]
 
             res = res.to_dict()
