@@ -10,15 +10,49 @@ from blacksmith.tools import use_tool
 from pydantic import BaseModel
 
 
-class Choice(BaseModel):
+# Code from https://github.com/jxnl/instructor
+def _remove_a_key(d, remove_key) -> None:
+    """Remove a key from a dictionary recursively"""
+    if isinstance(d, dict):
+        for key in list(d.keys()):
+            if key == remove_key:
+                del d[key]
+            else:
+                _remove_a_key(d[key], remove_key)
+
+
+class Schema(BaseModel):
+    # Code from https://github.com/jxnl/instructor
+    @classmethod
+    @property
+    def schema(cls):
+        schema = cls.model_json_schema()
+        parameters = {k: v for k, v in schema.items() if k not in ("title", "description")}
+        parameters["required"] = sorted(
+            k for k, v in parameters["properties"].items() if not "default" in v
+        )
+
+        _remove_a_key(parameters, "additionalProperties")
+        _remove_a_key(parameters, "title")
+
+        return {
+            "name": schema["title"],
+            "description": "Complete the function call with the choices given.",
+            "parameters": parameters,
+        }
+
+
+class Choice(Schema):
     options: List[Any]
 
-    def _schema(self):
-        model = self.model_dump()
+    # We over-ride the `schema()` method from the parent class
+    # Unfortunately, this needs to be an instance method as the option type is not known until runtime
+    def schema(cls):
+        model = cls.model_dump()
         option_type = TYPE_MAPPINGS[type(model["options"][0]).__name__]
         return {
             "name": "Choice",
-            "description": f"Complete the function call with the choices given.",
+            "description": "Complete the function call with the choices given.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -27,17 +61,17 @@ class Choice(BaseModel):
             },
         }
 
-    def generate(self, query: str, debug: bool = False):
-        """
-        Generates a choice based on the query.
-        """
-        c = Conversation(
-            system_prompt="You are a helpful assistant who only has access to a single function."
-        )
-        resp = c.ask(
-            query, functions=[self._schema()], function_call={"name": "Choice"}, debug=debug
-        )
-        return json.loads(resp.function_call.args)["choice"]
+
+def generate_from(obj: Schema, query: str):
+    is_choice = isinstance(obj, Choice)
+    object_schema = obj.schema() if is_choice else obj.schema
+
+    c = Conversation(
+        system_prompt="You are a helpful assistant who only has access to a single function."
+    )
+    resp = c.ask(query, functions=[object_schema], function_call={"name": object_schema["name"]})
+    response = json.loads(resp.function_call.args)
+    return response if not is_choice else response["choice"]
 
 
 class ChatMessage(BaseModel):
