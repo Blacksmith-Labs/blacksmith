@@ -27,12 +27,15 @@ class Choice(BaseModel):
             },
         }
 
-    def generate(self, query):
+    def generate(self, query: str, debug: bool = False):
+        """
+        Generates a choice based on the query.
+        """
         c = Conversation(
             system_prompt="You are a helpful assistant who only has access to a single function."
         )
         resp = c.ask(
-            query, functions=[self._schema()], function_call={"name": "Choice"}, debug=True
+            query, functions=[self._schema()], function_call={"name": "Choice"}, debug=debug
         )
         return json.loads(resp.function_call.args)["choice"]
 
