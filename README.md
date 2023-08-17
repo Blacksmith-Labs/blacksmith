@@ -38,6 +38,8 @@ with model("gpt-3.5-turbo", 0.5):
 ```
 
 ### Classification
+We can use the `Choice` class to reduce the completion between multiple possibilities.
+
 ```python
 from blacksmith.llm import Choice, generate_from
 
@@ -61,6 +63,8 @@ Strawberry
 ```
 
 ### Schema Guided Generation
+You can generate a JSON mapping to a custom `Schema`.
+
 ```python
 from blacksmith.llm import Schema, generate_from
 from enum import Enum
