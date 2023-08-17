@@ -5,7 +5,7 @@ import argparse
 from blacksmith.config.constants import TYPE_MAPPINGS
 
 
-def tool_to_json_func(description, func, params_desc):
+def tool_to_json_func(name, description, func, params_desc):
     func_parameters = _get_function_parameters(func=func)
     properties = {}
     for func_parameter in func_parameters:
@@ -20,7 +20,7 @@ def tool_to_json_func(description, func, params_desc):
         )
     return json.dumps(
         {
-            "name": os.getenv("TOOL_SERVICE_NAME"),
+            "name": name,
             "description": description,
             "parameters": {"type": "object", "properties": properties, "required": []},
         }
