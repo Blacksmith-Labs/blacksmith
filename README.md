@@ -1,5 +1,41 @@
+# Quickstart
+
+### Configuration
+Set the default configuration for LLM calls.
+
+```python
+from blacksmith.context import Config
+
+cfg = Config(
+    model="gpt-4-0613",
+    temperature=0.1,
+    api_key="sk-XXXXXXXXXXXXXXXXXXXXXXXX",
+)
+```
+
+```python
+from blacksmith.llm import Conversation
+
+c = Conversation()
+
+response = c.ask("What is the meaning of life?")
+```
+
 
 # Usage
+
+### Context Manager
+We can use the context manager to execute code blocks with an arbitrary configuration.
+
+```python
+from blacksmith.context import model
+
+with model("gpt-3.5-turbo", 0.5):
+    # All functions in this context are executed with GPT-3.5
+
+    cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
+    print(generate_from(cities, "The Golden Gate Bridge"))
+```
 
 ### Classification
 ```python
@@ -56,32 +92,77 @@ print(
 """
 ```
 
-### Configuration
-We can set a default configuration for LLM calls.
+# Function Calls
+
+### Creating functions
+We can create functions for our LLM to call using the `tool` decorator.
 
 ```python
-from blacksmith.context import Config
+from blacksmith.tools import tool
 
-cfg = Config(
-    model="gpt-4-0613",
-    temperature=0.1,
-    api_key="sk-XXXXXXXXXXXXXXXXXXXXXXXX",
+@tool(
+    name="foo",
+    description="A function that returns the parameter passed to it",
+    params={"bar": "The return value"},
 )
-
-# GPT-4 with temperature set to 0.1
-cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
-print(generate_from(cities, "The Golden Gate Bridge"))
+def foo(bar: str):
+    return bar
 ```
 
-### Context Manager
-We can also use the context manager to execute code blocks under a different configuration.
+### Function calls
+
+We can execute function calls from the result of `ask`.
 
 ```python
-from blacksmith.context import model
+from blacksmith.tools import tool
+from blacksmith.llm import Conversation
 
-with model("gpt-3.5-turbo", 0.5):
-    # All functions in this context are executed with GPT-3.5
 
-    cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
-    print(generate_from(cities, "The Golden Gate Bridge"))
+@tool(
+    name="Multiply",
+    description="A function that returns the result of the first argument multiplied by the second argument",
+    params={"a": "The first number", "b": "The second number"},
+)
+def multiply(a: int, b: int):
+    return a * b
+
+
+c = Conversation()
+resp = c.ask("What is 5 * 10")
+
+if resp.has_function_call():
+    # We can inspect the function call if we want
+    resp.function_call.inspect()
+    """
+    {
+        "tool": "Multiply",
+        "args": {
+            "a": 5,
+            "b": 10
+        }
+    }
+    """
+
+    # Looks good!
+    result = resp.execute_function_call()
+
+    # We can inspect the result if we want
+    result.inspect()
+    """
+    {
+        "tool": "Multiply",
+        "args": {
+            "a": 5,
+            "b": 10
+        },
+        "result": 50
+    }
+    """
+    resp = c.continue_from_result(result, stop=True)
+
+# Final answer
+print(resp.content)
+"""
+50
+"""
 ```
