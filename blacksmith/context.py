@@ -17,6 +17,25 @@ def model(model: str, temperature: int):
 
 
 class Config(BaseModel):
+    """
+    Configuration class for LLM calls.
+
+    Attributes:
+        model (Optional[str]): The name of the LLM model to use.
+        temperature (Optional[float]): The temperature to use for LLM sampling.
+        api_key (Optional[str]): The API key to use for OpenAI authentication.
+
+    Methods:
+        model_post_init(__context: Any) -> None: A method that sets the environment variables based on the values of the attributes.
+
+    Usage:
+        cfg = Config(
+          model="gpt-4-0613",
+          temperature=0.1,
+          api_key="sk-XXXXXXXXXXXXXXXXXXXXXXXX"
+        )
+    """
+
     model: Optional[str] = os.getenv("MODEL")
     temperature: Optional[float] = os.getenv("TEMPERATURE")
     api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
@@ -30,6 +49,14 @@ class Config(BaseModel):
             os.environ["OPENAI_API_KEY"] = self.api_key
 
     def load(self):
-        self.model = os.getenv("MODEL")
-        self.temperature = float(os.getenv("TEMPERATURE"))
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        """
+        Loads the default configuration from environment variables.
+        """
+        try:
+            self.model = os.getenv("MODEL")
+            self.temperature = float(os.getenv("TEMPERATURE"))
+            self.api_key = os.getenv("OPENAI_API_KEY")
+        except Exception as e:
+            raise KeyError(
+                f"Failed to load default configuration. Please check that the Config object has been initialized. Error: {e}"
+            )
