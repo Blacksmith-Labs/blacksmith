@@ -1,3 +1,5 @@
+![blacksmith](images/bs.png)
+
 # Quickstart
 
 ### Configuration
