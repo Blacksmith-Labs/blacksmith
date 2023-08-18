@@ -10,6 +10,9 @@
 3. [Function Calls](#function-calls)
     - [Creating Functions](#creating-functions)
     - [Function Calls](#function-calls-1)
+4. [Roadmap](#roadmap)
+    - [Integrations](#drop-in-integrations)
+    - [Primitives](#primitives)
 
 # Quickstart
 
@@ -183,3 +186,18 @@ print(resp.content)
 50
 """
 ```
+
+# Roadmap
+
+### Drop-in integrations
+
+- [x] `OpenAI`
+- [ ] `Anthropic`
+- [ ] `llama-2`
+- [ ] `HuggingFace` and `Replicate` models
+
+### Primitives
+
+- [ ] Embeddings
+- [ ] Prompting
+- [ ] Agents
