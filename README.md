@@ -1,5 +1,16 @@
 ![blacksmith](images/bs.png)
 
+# Table of Contents
+1. [Quickstart](#quickstart)
+    - [Configuration](#configuration)
+2. [Usage](#usage)
+    - [Context Manager](#context-manager)
+    - [Classification](#classification)
+    - [Schema Guided Generation](#schema-guided-generation)
+3. [Function Calls](#function-calls)
+    - [Creating Functions](#creating-functions)
+    - [Function Calls](#function-calls-1)
+
 # Quickstart
 
 ### Configuration
