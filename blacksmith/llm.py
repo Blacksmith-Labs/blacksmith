@@ -44,10 +44,26 @@ class Schema(BaseModel):
 
 
 class Choice(Schema):
+    """
+    A class representing a choice between multiple options. You can pass this to `generate_from` to perform classification tasks.
+
+    Inherits from `Schema`.
+
+    Attributes:
+        options (List[Any]): The options to choose from.
+
+    Usage:
+    ```
+    cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
+    generate_from(cities, "The Golden Gate Bridge")
+    "San Francisco"
+    ```
+    """
+
     options: List[Any]
 
     # We over-ride the `schema()` method from the parent class
-    # Unfortunately, this needs to be an instance method as the option type is not known until runtime
+    # Unfortunately, this needs to be an instance method as the option type is not known until object instantiation
     def schema(cls):
         model = cls.model_dump()
         option_type = TYPE_MAPPINGS[type(model["options"][0]).__name__]
@@ -163,6 +179,8 @@ class FunctionCallResult(FunctionCall):
     """
     A class representing the result of calling a LLM function.
 
+    Inherits from `FunctionCall`.
+
     Attributes:
         result (Any): The result of the function call.
 
@@ -193,15 +211,43 @@ class FunctionCallResult(FunctionCall):
 
 
 class LLMResponse(BaseModel):
+    """
+    Class representing a response from a completion.
+    Returned from `Conversation.ask`.
+
+    Attributes:
+        content (str | None): The content of the response. `None` if there is a pending function call.
+        function_call (Optional[FunctionCall]): The function call object, if the model wants to perform a function call. Defaults to `None`.
+
+    Methods:
+        execute_function_call() -> `FunctionCallResult`:
+            Executes a function call.
+        has_function_call() -> bool:
+            Returns true if the `LLMResponse` object contains a function call.
+
+    Usage:
+    ```
+    resp = c.ask("What is 5 * 6")
+    if resp.has_function_call():
+        result = resp.execute_function_call()
+    ```
+    """
+
     content: str | None
     function_call: Optional[FunctionCall] = None
 
     def execute_function_call(self, debug: bool = False) -> FunctionCallResult:
+        """
+        Executes a function call.
+        """
         if not self.function_call:
-            return ValueError("Function call not found")
+            return ValueError("Function call not found.")
         return self.function_call.execute(debug=debug)
 
     def has_function_call(self) -> bool:
+        """
+        Returns true if the `LLMResponse` object contains a function call.
+        """
         return self.function_call is not None
 
 
@@ -215,7 +261,7 @@ class Conversation(BaseModel):
         config (Optional[Config]): A `Config` object containing the configuration settings for the language model. Defaults to `None`.
 
     Methods:
-        ask -> `LLMResponse`:
+        ask() -> `LLMResponse`:
             Sends a prompt plus the current message chain to the language model.
             You can change the role by passing in a ChatRoles parameter (defaults to User).
             Returns a LLMResponse object.

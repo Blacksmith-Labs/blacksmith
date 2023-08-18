@@ -25,15 +25,14 @@ class Config(BaseModel):
         temperature (Optional[float]): The temperature to use for LLM sampling.
         api_key (Optional[str]): The API key to use for OpenAI authentication.
 
-    Methods:
-        model_post_init(__context: Any) -> None: A method that sets the environment variables based on the values of the attributes.
-
     Usage:
+    ```
         cfg = Config(
           model="gpt-4-0613",
           temperature=0.1,
           api_key="sk-XXXXXXXXXXXXXXXXXXXXXXXX"
         )
+    ```
     """
 
     model: Optional[str] = os.getenv("MODEL")
