@@ -297,12 +297,12 @@ class Conversation(BaseModel):
             self.config = Config()
             self.config.load()
 
-        # initialize messages
+        # init system message
         if self.system_prompt and not self.messages:
             self.messages = [ChatMessage(role=ChatRoles.SYSTEM, content=self.system_prompt)]
 
         # default to all available functions
-        if not functions:
+        if len(functions) == 0:
             functions = registry.get_tools()
 
         self.add_message(ChatMessage(role=role, content=prompt))
@@ -312,17 +312,17 @@ class Conversation(BaseModel):
     def _send(
         self, functions: list[dict], function_call: str | dict = "auto", debug=False
     ) -> LLMResponse:
-        # OpenAI
-
-        if not functions:
-            res = openai.ChatCompletion.create(
-                model=self.config.model,
-                messages=[message.model_dump() for message in self.messages],
-                temperature=self.config.temperature,
-            )["choices"][0]["message"]
-            return LLMResponse(content=res.get("content"))
         try:
             openai.api_key = self.config.api_key
+
+            if not functions:
+                res = openai.ChatCompletion.create(
+                    model=self.config.model,
+                    messages=[message.model_dump() for message in self.messages],
+                    temperature=self.config.temperature,
+                )["choices"][0]["message"]
+                return LLMResponse(content=res.to_dict().get("content"))
+
             res = openai.ChatCompletion.create(
                 model=self.config.model,
                 messages=[message.model_dump() for message in self.messages],
@@ -334,11 +334,10 @@ class Conversation(BaseModel):
             res = res.to_dict()
             if debug:
                 print(res)
-
             fc = res.get("function_call")
-
             if fc:
                 fc = fc.to_dict()
+
             return LLMResponse(
                 content=res.get("content"),
                 function_call=FunctionCall(
@@ -377,3 +376,9 @@ class Conversation(BaseModel):
         self.add_message(observation)
         functions = [] if stop else registry.get_tools()
         return self._send(functions=functions)
+
+    def with_config(self, config: Config):
+        """
+        Sets the configuration for a `Conversation`.
+        """
+        self.config = config
