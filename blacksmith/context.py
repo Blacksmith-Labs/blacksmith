@@ -56,6 +56,6 @@ class Config(BaseModel):
             self.temperature = float(os.getenv("TEMPERATURE"))
             self.api_key = os.getenv("OPENAI_API_KEY")
         except Exception as e:
-            raise KeyError(
+            raise RuntimeError(
                 f"Failed to load default configuration. Please check that the Config object has been initialized. Error: {e}"
             )
