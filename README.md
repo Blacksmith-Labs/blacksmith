@@ -48,9 +48,29 @@ from blacksmith.context import model
 
 with model("gpt-3.5-turbo", 0.5):
     # All functions in this context are executed with GPT-3.5
+    c = Conversation()
+    response = c.ask("What is the meaning of life?")
+```
 
-    cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
-    print(generate_from(cities, "The Golden Gate Bridge"))
+You can also specify a configuration for a `Conversation`.
+
+```python
+from blacksmith.context import Config
+from blacksmith.llm import Conversation
+
+# When initializing a Conversation
+cfg = Config(
+    model="gpt-3.5-turbo",
+    temperature=0.5,
+)
+c = Conversation(config=cfg)
+
+# Use the `with_config` method to set or replace a configuration for a Conversation at any point in its lifecycle.
+new_cfg = Config(
+    model="gpt-4-0613",
+    temperature=0.1,
+)
+c.with_config(new_cfg)
 ```
 
 ### Classification
@@ -189,15 +209,6 @@ print(resp.content)
 
 # Roadmap
 
-### Drop-in integrations
-
-- [x] `OpenAI`
-- [ ] `Anthropic`
-- [ ] `llama-2`
-- [ ] `HuggingFace` and `Replicate` models
-
-### Primitives
-
 - [ ] Embeddings
-- [ ] Prompting
+- [ ] Prompts
 - [ ] Agents
