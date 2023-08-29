@@ -282,6 +282,7 @@ class Conversation(BaseModel):
         prompt: str,
         functions: list[dict] = [],
         function_call: str | dict = "auto",
+        use_functions: bool = True,
         role: ChatRoles = ChatRoles.USER,
         debug: bool = False,
     ) -> LLMResponse:
@@ -307,7 +308,9 @@ class Conversation(BaseModel):
 
         self.add_message(ChatMessage(role=role, content=prompt))
 
-        return self._send(functions=functions, function_call=function_call, debug=debug)
+        return self._send(
+            functions=functions if use_functions else [], function_call=function_call, debug=debug
+        )
 
     def _send(
         self, functions: list[dict], function_call: str | dict = "auto", debug=False
