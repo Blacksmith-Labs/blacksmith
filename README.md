@@ -77,7 +77,7 @@ with model("gpt-3.5-turbo", 0.5):
     response = c.ask("What is the meaning of life?")
 ```
 
-You can also specify a configuration for a `Conversation`.
+You can also explicitly specify a configuration for a `Conversation`.
 
 ```python
 from blacksmith.context import Config
