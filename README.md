@@ -40,6 +40,31 @@ response = c.ask("What is the meaning of life?")
 
 # Usage
 
+### Conversation
+
+We can make requests to a `Conversation`, which represents a chain of messages to a LLM.
+
+```python
+from blacksmith.llm import Conversation
+
+c = Conversation()
+
+res = c.ask("Give me an Asian dessert themed name for my Maltese puppy.")
+
+print(res.content)
+"""
+Mochi
+"""
+
+res = c.ask("What is that in Mandarin Chinese?")
+
+print(res.content)
+"""
+In Mandarin Chinese, Mochi would be 麻糬 (máshǔ).
+"""
+```
+
+
 ### Context Manager
 We can use the context manager to execute code blocks with an arbitrary configuration.
 

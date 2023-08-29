@@ -324,7 +324,12 @@ class Conversation(BaseModel):
                     messages=[message.model_dump() for message in self.messages],
                     temperature=self.config.temperature,
                 )["choices"][0]["message"]
-                return LLMResponse(content=res.to_dict().get("content"))
+                res = res.to_dict()
+                if res.get("content"):
+                    self.add_message(
+                        ChatMessage(role=ChatRoles.ASSISTANT, content=res.get("content"))
+                    )
+                return LLMResponse(content=res.get("content"))
 
             res = openai.ChatCompletion.create(
                 model=self.config.model,
@@ -337,6 +342,7 @@ class Conversation(BaseModel):
             res = res.to_dict()
             if debug:
                 print(res)
+
             fc = res.get("function_call")
             if fc:
                 fc = fc.to_dict()
