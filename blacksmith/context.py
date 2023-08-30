@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import os
 from pydantic import BaseModel
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 
 @contextmanager
@@ -26,6 +26,7 @@ class Config(BaseModel):
         model (Optional[str]): The name of the LLM model to use.
         temperature (Optional[float]): The temperature to use for LLM sampling.
         api_key (Optional[str]): The API key to use for OpenAI authentication.
+        on_completion (Optional[list[Callabe]]): Functions called after a successful completion.
 
     Usage:
     ```
@@ -40,6 +41,7 @@ class Config(BaseModel):
     model: Optional[str] = os.getenv("MODEL")
     temperature: Optional[float] = os.getenv("TEMPERATURE")
     api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
+    on_completion: Optional[list[Callable]] = []
 
     def model_post_init(self, __context: Any) -> None:
         if self.model and not os.environ.get("MODEL"):

@@ -4,12 +4,15 @@
 1. [Quickstart](#quickstart)
     - [Configuration](#configuration)
 2. [Usage](#usage)
+    - [Conversation](#conversation)
     - [Context Manager](#context-manager)
     - [Classification](#classification)
     - [Schema Guided Generation](#schema-guided-generation)
 3. [Function Calls](#function-calls)
     - [Creating Functions](#creating-functions)
     - [Function Calls](#function-calls-1)
+4. [Advanced](#advanced)
+    - [Completion Hooks](#completion-hooks)
 4. [Roadmap](#roadmap)
     - [Integrations](#drop-in-integrations)
     - [Primitives](#primitives)
@@ -230,6 +233,83 @@ if resp.has_function_call():
 print(resp.content)
 """
 50
+"""
+```
+
+# Advanced
+
+### Completion hooks
+
+We can define custom functions to run on the `Completion` object.
+
+This is useful if you need observability on the raw model output.
+
+```python
+from blacksmith.llm import Conversation
+from blacksmith.context import Config
+
+# Let's print the token usage
+print_usage = lambda c: print(c.usage)
+
+# We can initialize `Config` objects with completion hooks
+cfg = Config(
+    model="gpt-3.5-turbo",
+    temperature=1,
+    api_key="sk-XXXXXXXXXXXXXXXXXXXXXXXX",
+    on_completion=[print_usage],
+)
+
+# Pass in the configuration
+c = Conversation(config=cfg)
+
+res = c.ask("What is cascara?")
+"""
+    {
+        "prompt_tokens": 12,
+        "completion_tokens": 117,
+        "total_tokens": 129
+    }
+"""
+
+print(res.content)
+"""
+Cascara is a beverage made from the dried husks of the coffee cherry fruit. It is derived from the outer skin and pulp of coffee cherries that are typically discarded during the coffee bean harvesting process. The word "cascara" means "husk" or "shell" in Spanish. The dried husks are brewed to create a tea-like beverage that has a fruity flavor with notes of cherry, raisin, and hibiscus. Cascara is becoming increasingly popular as an alternative to traditional coffee or tea, offering a unique taste profile and potential health benefits.
+"""
+```
+
+```python
+from blacksmith.llm import Conversation
+
+# Let's print the token usage
+print_usage = lambda c: print(c.usage)
+
+c = Conversation()
+
+# We can also use the `on_completion` method to add hooks to a conversation.
+c.on_completion(print_usage)
+
+res = c.ask("What national parks are located in California?")
+"""
+    {
+        "prompt_tokens": 15,
+        "completion_tokens": 95,
+        "total_tokens": 110
+    }
+"""
+
+print(res.content)
+"""
+There are nine national parks located in California:
+
+1. Death Valley National Park
+2. Joshua Tree National Park
+3. Channel Islands National Park
+4. Sequoia and Kings Canyon National Parks (jointly managed)
+5. Lassen Volcanic National Park
+6. Redwood National and State Parks (jointly managed with the State of California)
+7. Point Reyes National Seashore
+8. Pinnacles National Park
+9. Yosemite National Park
 """
 ```
 

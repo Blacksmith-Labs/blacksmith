@@ -1,6 +1,5 @@
 import openai
 import json
-import os
 from typing import Optional, List, Any
 from blacksmith.config.constants import ChatRoles
 from blacksmith.config.prompts import DEFAULT_OBSERVATION
@@ -274,9 +273,9 @@ class Conversation(BaseModel):
     ```
     """
 
+    config: Optional[Config] = None
     system_prompt: Optional[str] = ""
     messages: Optional[List[ChatMessage]] = []
-    config: Optional[Config] = None
 
     def ask(
         self,
@@ -317,31 +316,44 @@ class Conversation(BaseModel):
         self, functions: list[dict], function_call: str | dict = "auto", debug=False
     ) -> LLMResponse:
         try:
-            config = Config().load() if IS_USING_CONTEXT() else self.config
+            config = (
+                Config(on_completion=self.config.on_completion).load()
+                if IS_USING_CONTEXT()
+                else self.config
+            )
             openai.api_key = config.api_key
 
             if not functions:
-                res = openai.ChatCompletion.create(
+                completion = openai.ChatCompletion.create(
                     model=config.model,
                     messages=[message.model_dump() for message in self.messages],
                     temperature=config.temperature,
-                )["choices"][0]["message"]
-                res = res.to_dict()
+                )
+
+                # Process after completion hooks
+                for f in config.on_completion:
+                    f(completion)
+
+                res = completion["choices"][0]["message"].to_dict()
                 if res.get("content"):
                     self.add_message(
                         ChatMessage(role=ChatRoles.ASSISTANT, content=res.get("content"))
                     )
                 return LLMResponse(content=res.get("content"))
 
-            res = openai.ChatCompletion.create(
+            completion = openai.ChatCompletion.create(
                 model=config.model,
                 messages=[message.model_dump() for message in self.messages],
                 temperature=config.temperature,
                 functions=functions,
                 function_call=function_call,
-            )["choices"][0]["message"]
+            )
 
-            res = res.to_dict()
+            # Process after completion hooks
+            for f in config.on_completion:
+                f(completion)
+
+            res = completion["choices"][0]["message"].to_dict()
             if debug:
                 print(res)
 
@@ -388,8 +400,17 @@ class Conversation(BaseModel):
         functions = [] if stop else registry.get_tools()
         return self._send(functions=functions)
 
-    def with_config(self, config: Config):
+    def with_config(self, config: Config) -> None:
         """
         Sets the configuration for a `Conversation`.
         """
         self.config = config
+
+    def on_completion(self, func) -> None:
+        """
+        Adds a post-completion hook for a `Conversation`.
+        """
+        if not self.config:
+            self.config = Config()
+            self.config.load()
+        self.config.on_completion.append(func)
