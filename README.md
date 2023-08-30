@@ -277,7 +277,9 @@ Cascara is a beverage made from the dried husks of the coffee cherry fruit. It i
 """
 ```
 
-We can also add completion hooks on a `Conversation` level, instead of a configuration which may be used for many conversations.
+We can also add completion hooks on a `Conversation` level.
+
+This is useful if we are using a single configuration for many conversations and want granularity on hook implementations.
 
 ```python
 from blacksmith.llm import Conversation
