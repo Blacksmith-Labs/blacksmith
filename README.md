@@ -90,7 +90,8 @@ cfg = Config(
 )
 c = Conversation(config=cfg)
 
-# Use the `with_config` method to set or replace a configuration for a Conversation at any point in its lifecycle.
+# Use the `with_config` method to set or replace a configuration for a
+# Conversation at any point in its lifecycle.
 new_cfg = Config(
     model="gpt-4-0613",
     temperature=0.1,

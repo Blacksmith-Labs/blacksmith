@@ -8,7 +8,9 @@ from typing import Any, Optional
 def model(model: str, temperature: int):
     envars = os.environ.copy()
     try:
-        os.environ.update({"MODEL": model, "TEMPERATURE": str(temperature)})
+        os.environ.update(
+            {"MODEL": model, "TEMPERATURE": str(temperature), "USING_CONTEXT": "true"}
+        )
         yield
     finally:
         # Restore the original environment variables
@@ -47,14 +49,17 @@ class Config(BaseModel):
         if self.api_key and not os.environ.get("OPENAI_API_KEY"):
             os.environ["OPENAI_API_KEY"] = self.api_key
 
-    def load(self):
+    def load(self) -> "Config":
         """
         Loads the default configuration from environment variables.
+
+        This method can only be called after a Config object has been previously initialized.
         """
         try:
             self.model = os.getenv("MODEL")
             self.temperature = float(os.getenv("TEMPERATURE"))
             self.api_key = os.getenv("OPENAI_API_KEY")
+            return self
         except Exception as e:
             raise RuntimeError(
                 f"Failed to load default configuration. Please check that the Config object has been initialized. Error: {e}"

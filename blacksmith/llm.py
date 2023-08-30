@@ -5,6 +5,7 @@ from typing import Optional, List, Any
 from blacksmith.config.constants import ChatRoles
 from blacksmith.config.prompts import DEFAULT_OBSERVATION
 from blacksmith.config.constants import TYPE_MAPPINGS
+from blacksmith.config.environment import IS_USING_CONTEXT
 from blacksmith.context import Config
 from blacksmith.utils.registry import registry
 from blacksmith.tools import use_tool
@@ -316,13 +317,14 @@ class Conversation(BaseModel):
         self, functions: list[dict], function_call: str | dict = "auto", debug=False
     ) -> LLMResponse:
         try:
-            openai.api_key = self.config.api_key
+            config = Config().load() if IS_USING_CONTEXT() else self.config
+            openai.api_key = config.api_key
 
             if not functions:
                 res = openai.ChatCompletion.create(
-                    model=self.config.model,
+                    model=config.model,
                     messages=[message.model_dump() for message in self.messages],
-                    temperature=self.config.temperature,
+                    temperature=config.temperature,
                 )["choices"][0]["message"]
                 res = res.to_dict()
                 if res.get("content"):
@@ -332,9 +334,9 @@ class Conversation(BaseModel):
                 return LLMResponse(content=res.get("content"))
 
             res = openai.ChatCompletion.create(
-                model=self.config.model,
+                model=config.model,
                 messages=[message.model_dump() for message in self.messages],
-                temperature=self.config.temperature,
+                temperature=config.temperature,
                 functions=functions,
                 function_call=function_call,
             )["choices"][0]["message"]
