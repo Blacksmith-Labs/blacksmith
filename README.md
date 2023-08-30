@@ -1,21 +1,22 @@
 ![blacksmith](images/bs.png)
 
+This framework is under development and is an alpha release, it is currently **not recommended** to use in production.
+
 # Table of Contents
 1. [Quickstart](#quickstart)
     - [Configuration](#configuration)
 2. [Usage](#usage)
     - [Conversation](#conversation)
     - [Context Manager](#context-manager)
-    - [Classification](#classification)
-    - [Schema Guided Generation](#schema-guided-generation)
 3. [Function Calls](#function-calls)
     - [Creating Functions](#creating-functions)
-    - [Function Calls](#function-calls-1)
+    - [Executing function Calls](#executing-function-calls)
 4. [Advanced](#advanced)
+    - [Classification](#classification)
+    - [Schema Guided Generation](#schema-guided-generation)
     - [Completion Hooks](#completion-hooks)
-4. [Roadmap](#roadmap)
-    - [Integrations](#drop-in-integrations)
-    - [Primitives](#primitives)
+5. [Contributing (coming soon!)]()
+6. [Roadmap](#roadmap)
 
 # Quickstart
 
@@ -107,65 +108,6 @@ new_cfg = Config(
 c.with_config(new_cfg)
 ```
 
-### Classification
-We can use the `Choice` class to reduce the completion between multiple possibilities.
-
-```python
-from blacksmith.llm import Choice, generate_from
-
-cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
-print(generate_from(cities, "The Golden Gate Bridge"))
-"""
-San Francisco
-"""
-
-numbers = Choice(options=[1, 25, 50, 100])
-print(generate_from(numbers, "A number greater than 75"))
-"""
-100
-"""
-
-fruits = Choice(options=["Strawberry", "Banana", "Blueberry"])
-print(generate_from(fruits, "A red colored fruit"))
-"""
-Strawberry
-"""
-```
-
-### Schema Guided Generation
-You can generate a JSON mapping to a custom `Schema`.
-
-```python
-from blacksmith.llm import Schema, generate_from
-from enum import Enum
-
-
-class City(str, Enum):
-    SF = "San Francisco"
-    LA = "Los Angeles"
-    NYC = "New York City"
-
-
-class School(str, Enum):
-    CAL = "UC Berkeley"
-    STANFORD = "Stanford"
-    UCLA = "UCLA"
-
-
-class Character(Schema):
-    name: str
-    age: int
-    school: School
-    city: City
-
-print(
-    generate_from(Character, "John just graduated from UC Berkeley and lives near Golden Gate Park in SF")
-)
-"""
-{'name': 'John', 'age': 22, 'school': 'UC Berkeley', 'city': 'San Francisco'}
-"""
-```
-
 # Function Calls
 
 ### Creating functions
@@ -183,7 +125,7 @@ def foo(bar: str):
     return bar
 ```
 
-### Function calls
+### Executing function calls
 
 We can execute function calls from the result of `ask`.
 
@@ -242,6 +184,65 @@ print(resp.content)
 ```
 
 # Advanced
+
+### Classification
+We can use the `Choice` class to reduce the completion between multiple possibilities.
+
+```python
+from blacksmith.llm import Choice, generate_from
+
+cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
+print(generate_from(cities, "The Golden Gate Bridge"))
+"""
+San Francisco
+"""
+
+numbers = Choice(options=[1, 25, 50, 100])
+print(generate_from(numbers, "A number greater than 75"))
+"""
+100
+"""
+
+fruits = Choice(options=["Strawberry", "Banana", "Blueberry"])
+print(generate_from(fruits, "A red colored fruit"))
+"""
+Strawberry
+"""
+```
+
+### Schema Guided Generation
+You can generate a JSON mapping to a custom `Schema`.
+
+```python
+from blacksmith.llm import Schema, generate_from
+from enum import Enum
+
+
+class City(str, Enum):
+    SF = "San Francisco"
+    LA = "Los Angeles"
+    NYC = "New York City"
+
+
+class School(str, Enum):
+    CAL = "UC Berkeley"
+    STANFORD = "Stanford"
+    UCLA = "UCLA"
+
+
+class Character(Schema):
+    name: str
+    age: int
+    school: School
+    city: City
+
+print(
+    generate_from(Character, "John just graduated from UC Berkeley and lives near Golden Gate Park in SF")
+)
+"""
+{'name': 'John', 'age': 22, 'school': 'UC Berkeley', 'city': 'San Francisco'}
+"""
+```
 
 ### Completion hooks
 
@@ -328,5 +329,6 @@ There are nine national parks located in California:
 # Roadmap
 
 - [ ] Embeddings
+- [ ] Fine-tuning
 - [ ] Prompts
 - [ ] Agents
