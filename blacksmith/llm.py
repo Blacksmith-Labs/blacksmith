@@ -6,8 +6,7 @@ from blacksmith.config.prompts import DEFAULT_OBSERVATION
 from blacksmith.config.constants import TYPE_MAPPINGS
 from blacksmith.config.environment import IS_USING_CONTEXT
 from blacksmith.context import Config
-from blacksmith.utils.registry import registry
-from blacksmith.tools import use_tool
+from blacksmith.tools import use_tool, get_tools
 from pydantic import BaseModel
 
 
@@ -304,7 +303,7 @@ class Conversation(BaseModel):
 
         # default to all available functions
         if len(functions) == 0:
-            functions = registry.get_tools()
+            functions = get_tools()
 
         self.add_message(ChatMessage(role=role, content=prompt))
 
@@ -397,7 +396,7 @@ class Conversation(BaseModel):
         """
         observation = fcr.generate_observation()
         self.add_message(observation)
-        functions = [] if stop else registry.get_tools()
+        functions = [] if stop else get_tools()
         return self._send(functions=functions)
 
     def with_config(self, config: Config) -> None:
