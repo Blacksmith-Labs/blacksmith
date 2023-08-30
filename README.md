@@ -74,9 +74,14 @@ We can use the context manager to execute code blocks with an arbitrary configur
 ```python
 from blacksmith.context import model
 
+c = Conversation()
+
+with model("gpt-4-0613", 0.5):
+    # Executed with "gpt-4-0613"
+    response = c.ask("What is the plural for octopus?")
+
 with model("gpt-3.5-turbo", 0.5):
-    # All functions in this context are executed with GPT-3.5
-    c = Conversation()
+    # Executed with "gpt-3.5-turbo"
     response = c.ask("What is the meaning of life?")
 ```
 
@@ -273,7 +278,10 @@ res = c.ask("What is cascara?")
 
 print(res.content)
 """
-Cascara is a beverage made from the dried husks of the coffee cherry fruit. It is derived from the outer skin and pulp of coffee cherries that are typically discarded during the coffee bean harvesting process. The word "cascara" means "husk" or "shell" in Spanish. The dried husks are brewed to create a tea-like beverage that has a fruity flavor with notes of cherry, raisin, and hibiscus. Cascara is becoming increasingly popular as an alternative to traditional coffee or tea, offering a unique taste profile and potential health benefits.
+Cascara is a beverage made from the dried husks of the coffee cherry fruit.
+It is derived from the outer skin and pulp of coffee cherries that are typically discarded during the coffee bean harvesting process. The word "cascara" means "husk" or "shell" in Spanish. 
+The dried husks are brewed to create a tea-like beverage that has a fruity flavor with notes of cherry, raisin, and hibiscus.
+Cascara is becoming increasingly popular as an alternative to traditional coffee or tea, offering a unique taste profile and potential health benefits.
 """
 ```
 
