@@ -147,7 +147,8 @@ print(res.content)
 5. San Jose
 """
 
-# We have to be careful when using phrases as an input - any words prefixed with the token 'San' and 'Los' are also removed from the output.
+# We have to be careful when using phrases as an input:
+# Any words prefixed with the token 'San' and 'Los' are also removed from the output.
 # A better approach would be to just remove 'Francisco' and 'Angeles'
 c.ban_word("San Francisco")
 c.ban_word("Los Angeles")
