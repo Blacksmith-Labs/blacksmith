@@ -1,20 +1,20 @@
 ![blacksmith](images/bs.png)
 
-This framework is under development and is an alpha release, it is currently **not recommended** to use in production.
+This framework is under development and is an early alpha release, it is currently **not recommended** to use in production.
 
 # Table of Contents
 1. [Quickstart](#quickstart)
     - [Configuration](#configuration)
 2. [Usage](#usage)
     - [Conversation](#conversation)
-    - [Banning Words and Phrases](#banning-words)
-    - [Context Manager](#context-manager)
+    - [Classification](#classification)
+    - [Schema Guided Generation](#schema-guided-generation)
+    - [Banning Words and Phrases](#banning-words-and-phrases)
 3. [Function Calls](#function-calls)
     - [Creating Functions](#creating-functions)
     - [Executing Function Calls](#executing-function-calls)
-4. [Advanced](#advanced)
-    - [Classification](#classification)
-    - [Schema Guided Generation](#schema-guided-generation)
+4. [Advanced Usage](#advanced-usage)
+    - [Context Manager](#context-manager)
     - [Completion Hooks](#completion-hooks)
 5. [Contributing (coming soon!)]()
 6. [Roadmap](#roadmap)
@@ -69,6 +69,65 @@ In Mandarin Chinese, Mochi would be 麻糬 (máshǔ).
 """
 ```
 
+### Classification
+We can use the `Choice` class to reduce the completion between multiple possibilities.
+
+```python
+from blacksmith.llm import Choice, generate_from
+
+cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
+print(generate_from(cities, "The Golden Gate Bridge"))
+"""
+San Francisco
+"""
+
+numbers = Choice(options=[1, 25, 50, 100])
+print(generate_from(numbers, "A number greater than 75"))
+"""
+100
+"""
+
+fruits = Choice(options=["Strawberry", "Banana", "Blueberry"])
+print(generate_from(fruits, "A red colored fruit"))
+"""
+Strawberry
+"""
+```
+
+### Schema Guided Generation
+We can generate a JSON mapping to a custom `Schema`.
+
+```python
+from blacksmith.llm import Schema, generate_from
+from enum import Enum
+
+
+class City(str, Enum):
+    SF = "San Francisco"
+    LA = "Los Angeles"
+    NYC = "New York City"
+
+
+class School(str, Enum):
+    CAL = "UC Berkeley"
+    STANFORD = "Stanford"
+    UCLA = "UCLA"
+
+
+class Character(Schema):
+    name: str
+    age: int
+    school: School
+    city: City
+
+print(
+    generate_from(Character, "John just graduated from UC Berkeley and lives near Golden Gate Park in SF")
+)
+"""
+{'name': 'John', 'age': 22, 'school': 'UC Berkeley', 'city': 'San Francisco'}
+"""
+```
+
 ### Banning Words and Phrases
 
 We can ban words or phrases from appearing in our output.
@@ -88,7 +147,7 @@ print(res.content)
 5. San Jose
 """
 
-# We have to be careful when phrases as an input - any words prefixed with the token 'San' and 'Los' are also removed from the output.
+# We have to be careful when using phrases as an input - any words prefixed with the token 'San' and 'Los' are also removed from the output.
 # A better approach would be to just remove 'Francisco' and 'Angeles'
 c.ban_word("San Francisco")
 c.ban_word("Los Angeles")
@@ -105,44 +164,6 @@ print(res.content)
 ```
 
 
-### Context Manager
-We can use the context manager to execute code blocks with an arbitrary configuration.
-
-```python
-from blacksmith.context import model
-
-c = Conversation()
-
-with model("gpt-4-0613", 0.5):
-    # Executed with "gpt-4-0613"
-    response = c.ask("What is the plural for octopus?")
-
-with model("gpt-3.5-turbo", 0.5):
-    # Executed with "gpt-3.5-turbo"
-    response = c.ask("What is the meaning of life?")
-```
-
-You can also explicitly specify a configuration for a `Conversation`.
-
-```python
-from blacksmith.context import Config
-from blacksmith.llm import Conversation
-
-# When initializing a Conversation
-cfg = Config(
-    model="gpt-3.5-turbo",
-    temperature=0.5,
-)
-c = Conversation(config=cfg)
-
-# Use the `with_config` method to set or replace a configuration for a
-# Conversation at any point in its lifecycle.
-new_cfg = Config(
-    model="gpt-4-0613",
-    temperature=0.1,
-)
-c.with_config(new_cfg)
-```
 
 # Function Calls
 
@@ -219,66 +240,47 @@ print(resp.content)
 """
 ```
 
-# Advanced
+# Advanced Usage
 
-### Classification
-We can use the `Choice` class to reduce the completion between multiple possibilities.
+### Context Manager
+We can use the context manager to execute code blocks with an arbitrary configuration.
 
 ```python
-from blacksmith.llm import Choice, generate_from
+from blacksmith.context import model
 
-cities = Choice(options=["San Francisco", "Los Angeles", "New York City"])
-print(generate_from(cities, "The Golden Gate Bridge"))
-"""
-San Francisco
-"""
+c = Conversation()
 
-numbers = Choice(options=[1, 25, 50, 100])
-print(generate_from(numbers, "A number greater than 75"))
-"""
-100
-"""
+with model("gpt-4-0613", 0.5):
+    # Executed with "gpt-4-0613"
+    response = c.ask("What is the plural for octopus?")
 
-fruits = Choice(options=["Strawberry", "Banana", "Blueberry"])
-print(generate_from(fruits, "A red colored fruit"))
-"""
-Strawberry
-"""
+with model("gpt-3.5-turbo", 0.5):
+    # Executed with "gpt-3.5-turbo"
+    response = c.ask("What is the meaning of life?")
 ```
 
-### Schema Guided Generation
-You can generate a JSON mapping to a custom `Schema`.
+You can also explicitly specify a configuration for a `Conversation`.
 
 ```python
-from blacksmith.llm import Schema, generate_from
-from enum import Enum
+from blacksmith.context import Config
+from blacksmith.llm import Conversation
 
-
-class City(str, Enum):
-    SF = "San Francisco"
-    LA = "Los Angeles"
-    NYC = "New York City"
-
-
-class School(str, Enum):
-    CAL = "UC Berkeley"
-    STANFORD = "Stanford"
-    UCLA = "UCLA"
-
-
-class Character(Schema):
-    name: str
-    age: int
-    school: School
-    city: City
-
-print(
-    generate_from(Character, "John just graduated from UC Berkeley and lives near Golden Gate Park in SF")
+# When initializing a Conversation
+cfg = Config(
+    model="gpt-3.5-turbo",
+    temperature=0.5,
 )
-"""
-{'name': 'John', 'age': 22, 'school': 'UC Berkeley', 'city': 'San Francisco'}
-"""
+c = Conversation(config=cfg)
+
+# Use the `with_config` method to set or replace a configuration for a
+# Conversation at any point in its lifecycle.
+new_cfg = Config(
+    model="gpt-4-0613",
+    temperature=0.1,
+)
+c.with_config(new_cfg)
 ```
+
 
 ### Completion hooks
 
