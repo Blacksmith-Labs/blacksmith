@@ -7,10 +7,11 @@ This framework is under development and is an alpha release, it is currently **n
     - [Configuration](#configuration)
 2. [Usage](#usage)
     - [Conversation](#conversation)
+    - [Banning Words and Phrases](#banning-words)
     - [Context Manager](#context-manager)
 3. [Function Calls](#function-calls)
     - [Creating Functions](#creating-functions)
-    - [Executing function Calls](#executing-function-calls)
+    - [Executing Function Calls](#executing-function-calls)
 4. [Advanced](#advanced)
     - [Classification](#classification)
     - [Schema Guided Generation](#schema-guided-generation)
@@ -65,6 +66,41 @@ res = c.ask("What is that in Mandarin Chinese?")
 print(res.content)
 """
 In Mandarin Chinese, Mochi would be 麻糬 (máshǔ).
+"""
+```
+
+### Banning Words and Phrases
+
+We can ban words or phrases from appearing in our output.
+
+```python
+from blacksmith.llm import Conversation
+
+c = Conversation()
+
+res = c.ask("Name 5 cities in California")
+print(res.content)
+"""
+1. Los Angeles
+2. San Francisco
+3. San Diego
+4. Sacramento
+5. San Jose
+"""
+
+# We have to be careful when phrases as an input - any words prefixed with the token 'San' and 'Los' are also removed from the output.
+# A better approach would be to just remove 'Francisco' and 'Angeles'
+c.ban_word("San Francisco")
+c.ban_word("Los Angeles")
+
+res = c.ask("Name 5 cities in California")
+print(res.content)
+"""
+1. Sacramento
+2. Fresno
+3. Oakland
+4. Santa Barbara
+5. Long Beach
 """
 ```
 

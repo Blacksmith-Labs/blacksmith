@@ -316,7 +316,7 @@ class Conversation(BaseModel):
     ) -> LLMResponse:
         try:
             config = (
-                Config(on_completion=self.config.on_completion).load()
+                Config(on_completion=self.config.on_completion, bias=self.config.bias).load()
                 if IS_USING_CONTEXT()
                 else self.config
             )
@@ -327,6 +327,7 @@ class Conversation(BaseModel):
                     model=config.model,
                     messages=[message.model_dump() for message in self.messages],
                     temperature=config.temperature,
+                    logit_bias=config.bias,
                 )
 
                 # Process after completion hooks
@@ -413,3 +414,38 @@ class Conversation(BaseModel):
             self.config = Config()
             self.config.load()
         self.config.on_completion.append(func)
+
+    def _update_all_possibilites(self, word: str, value: int):
+        possibilites = [
+            lambda t: f" {t}",
+            lambda t: f" {t}".lower(),
+            lambda t: f" {t}".upper(),
+            lambda t: t[0].upper() + t[1:],
+            lambda t: " " + t[0].upper() + t[1:],
+        ]
+
+        for possible in possibilites:
+            self.update_bias(token=possible(word), value=value)
+
+    def ban_word(self, word: str) -> None:
+        """
+        Prevents occurrences of a word in the generated output.
+
+        Usage:
+        ```
+            c = Conversation()
+
+            c.ban_word("San Francisco")
+            c.ban_word("Los Angeles")
+            cities = c.ask("What are a few cities in California?")
+        ```
+        """
+        self._update_all_possibilites(word, -100)
+
+    def update_bias(self, token: str, value: int) -> None:
+        """
+        Update the generation bias for `token`.
+        """
+        if not self.config:
+            self.config = Config().load()
+        self.config.update_bias(token=token, value=value)

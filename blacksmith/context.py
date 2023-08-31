@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import os
 from pydantic import BaseModel
+from blacksmith.utils.tokenizer import get_encodings
 from typing import Any, Optional, Callable
 
 
@@ -42,6 +43,7 @@ class Config(BaseModel):
     temperature: Optional[float] = os.getenv("TEMPERATURE")
     api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
     on_completion: Optional[list[Callable]] = []
+    bias: Optional[dict] = {}
 
     def model_post_init(self, __context: Any) -> None:
         if self.model and not os.environ.get("MODEL"):
@@ -66,3 +68,11 @@ class Config(BaseModel):
             raise RuntimeError(
                 f"Failed to load default configuration. Please check that the Config object has been initialized. Error: {e}"
             )
+
+    def update_bias(self, token: str, value: int) -> None:
+        """
+        Updates the bias for `token`.
+        """
+        encodings = get_encodings(model=self.model, token=token)
+        for token in encodings:
+            self.bias.update({token: value})
