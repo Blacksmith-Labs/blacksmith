@@ -378,6 +378,12 @@ class Conversation(BaseModel):
         """
         self.messages.append(message)
 
+    def clear(self) -> None:
+        """
+        Clears the chat history.
+        """
+        self.messages = []
+
     def continue_from_result(self, fcr: FunctionCallResult, stop: bool = False):
         """
         Generates an observation from a function call result and sends another request to the LLM.
